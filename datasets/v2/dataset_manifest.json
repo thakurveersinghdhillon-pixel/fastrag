@@ -1,0 +1,84 @@
+{
+  "dataset_name": "FastRAG Research Evaluation Dataset v2",
+  "version": "2.0.0",
+  "created_at_utc": "2026-10-15T20:32:32.157369+00:00",
+  "description": "Research-grade evaluation dataset for FastRAG v2 covering factual, multi-hop, technical identifier, unanswerable/negative, ambiguous, and citation-grounded evaluation.",
+  "counts": {
+    "documents": 36,
+    "queries_total": 120,
+    "queries_dev": 60,
+    "queries_test": 60,
+    "qrels_total": 411,
+    "qrels_dev": 206,
+    "qrels_test": 205
+  },
+  "distributions": {
+    "by_category": {
+      "factual_direct": 20,
+      "multi_hop": 20,
+      "technical_identifiers": 20,
+      "unanswerable_negative": 20,
+      "ambiguous_underspecified": 20,
+      "citation_grounding": 20
+    },
+    "by_split": {
+      "dev": 60,
+      "test": 60
+    },
+    "by_provenance_status": {
+      "human_reviewed": 67,
+      "heuristic_candidate": 18,
+      "pending_review": 35
+    }
+  },
+  "relevance_scale": {
+    "0": "not relevant (explicit negative / distractor / unanswerable)",
+    "1": "partially relevant (background context / related topic)",
+    "2": "highly relevant (directly contains required answer / evidence)"
+  },
+  "files": {
+    "corpus.jsonl": {
+      "relative_path": "datasets/v2/corpus.jsonl",
+      "sha256": "26dc2ef7eaa129c217008a9e5fddb311ff8c4241f9db6bcfb4a1c86c178c076d",
+      "size_bytes": 21337,
+      "line_count": 36
+    },
+    "queries.jsonl": {
+      "relative_path": "datasets/v2/queries.jsonl",
+      "sha256": "fe13177e3ccc6c61a65b39d69114cde039be46153abcf54ef1eb217e6e81a454",
+      "size_bytes": 94302,
+      "line_count": 120
+    },
+    "queries_dev.jsonl": {
+      "relative_path": "datasets/v2/queries_dev.jsonl",
+      "sha256": "c3da46871393ab620b8ace61124237cd87a0664ff545679a4c1a4e2db7d44e9e",
+      "size_bytes": 47447,
+      "line_count": 60
+    },
+    "queries_test.jsonl": {
+      "relative_path": "datasets/v2/queries_test.jsonl",
+      "sha256": "55e8487c53dd6cb6fe63e8cbb6ecaf9ada178d95c3b2b3f4d47118e67a8a5900",
+      "size_bytes": 46855,
+      "line_count": 60
+    },
+    "qrels.tsv": {
+      "relative_path": "datasets/v2/qrels.tsv",
+      "sha256": "9d4fa12e7e9656f9c147878d1af5a9398a833940250cbba368feff91b1ff7ace",
+      "size_bytes": 9658,
+      "line_count": 411
+    },
+    "qrels_dev.tsv": {
+      "relative_path": "datasets/v2/qrels_dev.tsv",
+      "sha256": "1da2965adb6975d7a6a569d7f2192a20fc377f87377629e0586cd7b9136c43c5",
+      "size_bytes": 4738,
+      "line_count": 206
+    },
+    "qrels_test.tsv": {
+      "relative_path": "datasets/v2/qrels_test.tsv",
+      "sha256": "c64a749d3b5bbf5a2e24706bd12ecfd38bb46002ae9f931566e04be96d420d40",
+      "size_bytes": 4920,
+      "line_count": 205
+    }
+  },
+  "generation_notes": "Generated deterministically by scripts/generate_dataset_v2.py. Do not manually edit checksums or counts."
+}

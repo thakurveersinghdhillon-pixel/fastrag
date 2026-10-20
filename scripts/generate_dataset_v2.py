@@ -1,0 +1,2307 @@
+"""FastRAG Research Evaluation Dataset v2 Generator.
+
+Generates a versioned, research-quality evaluation dataset for FastRAG:
+- datasets/v2/corpus.jsonl: Canonical 36 technical documents
+- datasets/v2/queries.jsonl: 120 curated queries across 6 research categories
+- datasets/v2/queries_dev.jsonl: 60 development split queries
+- datasets/v2/queries_test.jsonl: 60 held-out test split queries
+- datasets/v2/qrels.tsv: Ground-truth relevance judgments in standard TREC format
+- datasets/v2/qrels_dev.tsv: Qrels for dev split
+- datasets/v2/qrels_test.tsv: Qrels for test split
+- datasets/v2/dataset_manifest.json: Cryptographic manifest with SHA-256 hashes, counts, and category/provenance breakdowns
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+CANONICAL_CORPUS = PROJECT_ROOT / "datasets" / "corpus.jsonl"
+V2_DATASETS_DIR = PROJECT_ROOT / "datasets" / "v2"
+
+
+def sha256_file(filepath: Path) -> str:
+    hasher = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(65536):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# Queries Definition: 120 total (60 dev, 60 test, 20 per category)
+# Categories:
+# 1. factual_direct (20)
+# 2. multi_hop (20)
+# 3. technical_identifiers (20)
+# 4. unanswerable_negative (20)
+# 5. ambiguous_underspecified (20)
+# 6. citation_grounding (20)
+# ---------------------------------------------------------------------------
+
+QUERIES_DATA: list[dict[str, Any]] = [
+    # =======================================================================
+    # 1. FACTUAL DIRECT (Dev: 10, Test: 10)
+    # =======================================================================
+    # --- Dev ---
+    {
+        "query_id": "q2_dev_001",
+        "query": "What is the typical token overlap range recommended for recursive character text chunking?",
+        "category": "factual_direct",
+        "split": "dev",
+        "reference_answer": "Recursive character chunking typically uses a 10% to 20% token overlap (with chunk sizes from 256 to 512 tokens) to preserve context across chunk boundaries.",
+        "source_doc_ids": ["doc_001"],
+        "expected_evidence": ["Typical chunk sizes range from 256 to 512 tokens with a 10% to 20% token overlap"],
+        "relevance_judgments": {"doc_001": 2, "doc_004": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_002",
+        "query": "How does cosine similarity simplify computationally when document embeddings are normalized to unit Euclidean length?",
+        "category": "factual_direct",
+        "split": "dev",
+        "reference_answer": "When document embeddings are pre-normalized to unit Euclidean length (L2 norm = 1.0), cosine similarity simplifies computationally to a fast vector dot product.",
+        "source_doc_ids": ["doc_006"],
+        "expected_evidence": ["pre-normalizing all document embeddings to unit Euclidean length (L2 norm = 1.0)", "simplifies computationally to a fast vector dot product"],
+        "relevance_judgments": {"doc_006": 2, "doc_005": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_003",
+        "query": "What are the two key hyperparameters of an HNSW vector index graph?",
+        "category": "factual_direct",
+        "split": "dev",
+        "reference_answer": "The two key hyperparameters of an HNSW vector index graph are M (the number of bi-directional links per node) and efConstruction (the size of the dynamic candidate list during graph construction).",
+        "source_doc_ids": ["doc_007"],
+        "expected_evidence": ["Key hyperparameters include M (number of bi-directional links per node) and efConstruction (size of dynamic candidate list during graph building)"],
+        "relevance_judgments": {"doc_007": 2, "doc_008": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_004",
+        "query": "What does parameter b in the BM25 scoring formulation control?",
+        "category": "factual_direct",
+        "split": "dev",
+        "reference_answer": "In BM25, parameter b (typically 0.75) penalizes long documents by normalizing term frequency relative to the average document length across the collection.",
+        "source_doc_ids": ["doc_009"],
+        "expected_evidence": ["parameter b (typically 0.75) penalizes long documents by normalizing term frequency relative to average document length"],
+        "relevance_judgments": {"doc_009": 2, "doc_012": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_005",
+        "query": "What Python mechanism allows concurrent dispatch of BM25 and dense retrieval to minimize wall-clock latency?",
+        "category": "factual_direct",
+        "split": "dev",
+        "reference_answer": "Python's asyncio.gather dispatches BM25 and dense retrieval concurrently, reducing total wall-clock retrieval time from T_dense + T_lexical to max(T_dense, T_lexical) plus negligible non-blocking orchestration overhead.",
+        "source_doc_ids": ["doc_013"],
+        "expected_evidence": ["dispatching both retrievers concurrently via Python's asyncio.gather, total wall-clock retrieval time is reduced to max(T_dense, T_lexical)"],
+        "relevance_judgments": {"doc_013": 2, "doc_028": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_006",
+        "query": "What is the computational complexity of CrossEncoder self-attention over query and candidate passage tokens?",
+        "category": "factual_direct",
+        "split": "dev",
+        "reference_answer": "CrossEncoders exhibit O(N * L^2) computational complexity because every query token attends to every candidate passage token simultaneously through full self-attention layers.",
+        "source_doc_ids": ["doc_017"],
+        "expected_evidence": ["CrossEncoders have O(N * L^2) computational cost", "allows every query token to attend to every document token"],
+        "relevance_judgments": {"doc_017": 2, "doc_005": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_007",
+        "query": "What context placement strategy mitigates the lost-in-the-middle effect in RAG prompts?",
+        "category": "factual_direct",
+        "split": "dev",
+        "reference_answer": "Strategic context ordering places the highest-relevance passages at the prompt boundaries (extreme beginning and end) to maximize factual utilization by LLM attention mechanisms.",
+        "source_doc_ids": ["doc_022"],
+        "expected_evidence": ["Strategic context ordering places the highest-relevance passages at the prompt boundaries"],
+        "relevance_judgments": {"doc_022": 2, "doc_021": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_008",
+        "query": "How does FastRAG automatically invalidate cached query responses when source documents are mutated?",
+        "category": "factual_direct",
+        "split": "dev",
+        "reference_answer": "Cache entries in FastRAG are tagged with the active corpus version hash; any insertion, update, or deletion increments the index version, automatically invalidating outdated cache entries.",
+        "source_doc_ids": ["doc_026"],
+        "expected_evidence": ["cache entries are tagged with the active corpus version hash. Any document insertion, update, or deletion increments the index version"],
+        "relevance_judgments": {"doc_026": 2, "doc_025": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_009",
+        "query": "What metric evaluates retrieval precision based strictly on the rank position of the first relevant document?",
+        "category": "factual_direct",
+        "split": "dev",
+        "reference_answer": "Mean Reciprocal Rank (MRR) evaluates how early the first relevant document appears, computing 1/rank for the first relevant hit and 0 if none appear within top-k.",
+        "source_doc_ids": ["doc_029"],
+        "expected_evidence": ["MRR measures how early the first relevant document appears in the retrieved ranking", "Reciprocal rank is 1/rank for the first relevant hit"],
+        "relevance_judgments": {"doc_029": 2, "doc_030": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_010",
+        "query": "What are the three core evaluation dimensions that constitute the RAG Triad framework?",
+        "category": "factual_direct",
+        "split": "dev",
+        "reference_answer": "The RAG Triad framework evaluates three dimensions: Context Relevance (retrieved passages are pertinent), Faithfulness (generated claims are supported by context), and Answer Relevance (response addresses the user question).",
+        "source_doc_ids": ["doc_032"],
+        "expected_evidence": ["Context Relevance verifies that retrieved passages are pertinent", "Faithfulness measures whether generated claims are strictly supported", "Answer Relevance verifies that the response addresses the user question"],
+        "relevance_judgments": {"doc_032": 2, "doc_023": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+
+    # --- Test ---
+    {
+        "query_id": "q2_test_001",
+        "query": "What dynamic condition determines a new chunk boundary in semantic chunking?",
+        "category": "factual_direct",
+        "split": "test",
+        "reference_answer": "In semantic chunking, a new chunk boundary is established dynamically when the cosine distance between the embeddings of consecutive sentences exceeds a predefined threshold.",
+        "source_doc_ids": ["doc_002"],
+        "expected_evidence": ["When cosine distance between sequential sentences exceeds a predefined threshold, a new chunk boundary is established"],
+        "relevance_judgments": {"doc_002": 2, "doc_001": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_002",
+        "query": "Why do technical identifiers and code snippets produce more tokens per character when using subword tokenizers like BPE?",
+        "category": "factual_direct",
+        "split": "test",
+        "reference_answer": "Code snippets, technical identifiers, and non-ASCII scripts produce significantly more tokens per character in BPE or WordPiece tokenizers because they consist of rare subwords and special symbols not common in standard English prose.",
+        "source_doc_ids": ["doc_003"],
+        "expected_evidence": ["Code snippets, technical identifiers, and non-ASCII scripts produce significantly more tokens per character than standard English prose"],
+        "relevance_judgments": {"doc_003": 2, "doc_001": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_003",
+        "query": "How does IVF-PQ reduce RAM consumption compared to exact Flat vector indexing?",
+        "category": "factual_direct",
+        "split": "test",
+        "reference_answer": "IVF-PQ partitions the vector space into Voronoi cells via k-means clustering and compresses high-dimensional vectors into compact byte codes using product quantization, querying only the nearest Voronoi centroids (nprobe).",
+        "source_doc_ids": ["doc_008"],
+        "expected_evidence": ["partitions vector space into Voronoi cells via k-means clustering and compresses high-dimensional vectors into compact byte codes using product quantization"],
+        "relevance_judgments": {"doc_008": 2, "doc_007": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_004",
+        "query": "What value of parameter b is recommended for BM25 when indexing technical documentation, and why?",
+        "category": "factual_direct",
+        "split": "test",
+        "reference_answer": "Setting b=0.5 is recommended for technical documentation because it dampens excessive length penalties, preventing brief function signatures from being suppressed by longer tutorial guides.",
+        "source_doc_ids": ["doc_012"],
+        "expected_evidence": ["Setting b=0.5 dampens excessive length penalties, preventing brief function signatures from drowning out detailed architectural guides"],
+        "relevance_judgments": {"doc_012": 2, "doc_009": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_005",
+        "query": "What is the traditional default value for the smoothing constant k in Reciprocal Rank Fusion?",
+        "category": "factual_direct",
+        "split": "test",
+        "reference_answer": "In Reciprocal Rank Fusion, the smoothing constant k is traditionally set to k=60 in the formula sum(1 / (k + rank_m(d))).",
+        "source_doc_ids": ["doc_014"],
+        "expected_evidence": ["where k is a smoothing constant (traditionally k=60)"],
+        "relevance_judgments": {"doc_014": 2, "doc_015": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_006",
+        "query": "What candidate pool size is typically retrieved in stage one of a two-stage retrieval pipeline before reranking?",
+        "category": "factual_direct",
+        "split": "test",
+        "reference_answer": "In stage one of a two-stage retrieval pipeline, fast hybrid retrieval typically fetches 50 to 100 candidate documents before reranking the top 10 to 20.",
+        "source_doc_ids": ["doc_018"],
+        "expected_evidence": ["fast hybrid retrieval (Dense + BM25) fetches 50 to 100 candidate documents in tens of milliseconds", "reranks only the top 10 to 20 candidates"],
+        "relevance_judgments": {"doc_018": 2, "doc_017": 1, "doc_031": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_007",
+        "query": "What algorithm does FastRAG use to select context passages under a strict prompt token budget?",
+        "category": "factual_direct",
+        "split": "test",
+        "reference_answer": "FastRAG uses greedy knapsack packing to select top-ranked passages until the context budget is exhausted, preventing prompt overflow and reducing TTFT latency.",
+        "source_doc_ids": ["doc_021"],
+        "expected_evidence": ["Greedy knapsack packing selects top-ranked passages until the context budget is exhausted"],
+        "relevance_judgments": {"doc_021": 2, "doc_022": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_008",
+        "query": "What are the roles of Level 1 and Level 2 caches in FastRAG's multi-tier caching architecture?",
+        "category": "factual_direct",
+        "split": "test",
+        "reference_answer": "Level 1 Query Cache stores completed end-to-end responses for exact queries (bypassing retrieval and generation), while Level 2 Embedding Cache stores query embedding vectors in-memory to avoid redundant Transformer encoder passes.",
+        "source_doc_ids": ["doc_025"],
+        "expected_evidence": ["Level 1 Query Cache stores completed end-to-end responses", "Level 2 Embedding Cache stores query embedding vectors in-memory"],
+        "relevance_judgments": {"doc_025": 2, "doc_026": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_009",
+        "query": "What transport mechanism enables streaming LLM responses to provide interactive feedback and reduce perceived latency?",
+        "category": "factual_direct",
+        "split": "test",
+        "reference_answer": "Streaming LLM output using Server-Sent Events (SSE) or HTTP chunked transfer dramatically reduces perceived latency by providing immediate tokens while remaining tokens generate.",
+        "source_doc_ids": ["doc_027"],
+        "expected_evidence": ["Streaming LLM output using Server-Sent Events (SSE) or HTTP chunked transfer dramatically reduces perceived latency"],
+        "relevance_judgments": {"doc_027": 2, "doc_028": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_010",
+        "query": "How is Discounted Cumulative Gain (DCG) calculated for graded relevance in the nDCG evaluation metric?",
+        "category": "factual_direct",
+        "split": "test",
+        "reference_answer": "DCG applies logarithmic decay to lower ranks using the formulation: sum((2^rel - 1) / log2(rank + 1)), which is subsequently normalized by dividing by Ideal DCG (IDCG).",
+        "source_doc_ids": ["doc_030"],
+        "expected_evidence": ["Discounted Cumulative Gain (DCG) applies logarithmic decay to lower ranks: sum((2^rel - 1) / log2(rank + 1))"],
+        "relevance_judgments": {"doc_030": 2, "doc_029": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+
+    # =======================================================================
+    # 2. MULTI-HOP (Dev: 10, Test: 10)
+    # =======================================================================
+    # --- Dev ---
+    {
+        "query_id": "q2_dev_011",
+        "query": "How do bi-encoders and cross-encoders differ in internal attention architecture and computational complexity?",
+        "category": "multi_hop",
+        "split": "dev",
+        "reference_answer": "Bi-encoders encode documents and queries independently using twin Transformer encoders (enabling offline vector pre-computation and fast online dot products), whereas cross-encoders concatenate query and passage into full self-attention layers with O(N * L^2) complexity, enabling all query tokens to attend to all document tokens.",
+        "source_doc_ids": ["doc_005", "doc_017"],
+        "expected_evidence": [
+            "Bi-encoder architectures encode documents and queries independently using twin Transformer encoders",
+            "CrossEncoder feeds the concatenated query and candidate passage into full self-attention layers simultaneously",
+            "CrossEncoders have O(N * L^2) computational cost",
+        ],
+        "relevance_judgments": {"doc_005": 2, "doc_017": 2, "doc_018": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_012",
+        "query": "Why do lexical and dense retrieval complement each other in RAG, and how does RRF merge their ranked lists without score calibration?",
+        "category": "multi_hop",
+        "split": "dev",
+        "reference_answer": "BM25 excels at exact keyword and rare acronym matching where dense embeddings fail, while dense bi-encoders capture semantic meaning and synonyms. Reciprocal Rank Fusion (RRF) merges them without requiring calibrated scores by summing 1 / (k + rank) for each system.",
+        "source_doc_ids": ["doc_011", "doc_014"],
+        "expected_evidence": [
+            "BM25 relies on exact surface-form token matching",
+            "dense bi-encoders capture semantic meaning, synonyms, and conceptual intent",
+            "RRF merges multiple ranked lists without requiring score calibration across disparate scoring scales",
+        ],
+        "relevance_judgments": {"doc_011": 2, "doc_014": 2, "doc_009": 1, "doc_005": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_013",
+        "query": "How does tuning the RRF constant k affect candidate scoring, and how does the fusion formula prevent outlier scores from dominating?",
+        "category": "multi_hop",
+        "split": "dev",
+        "reference_answer": "A small k (e.g., k=10) aggressively rewards documents in the top 3 ranks of either retriever, whereas a large k (e.g., k=100) balances weight across documents appearing moderately well in both lists. The reciprocal rank formulation sum(1 / (k + rank)) bounds individual rank contributions, preventing high absolute score outliers from skewing consensus.",
+        "source_doc_ids": ["doc_014", "doc_015"],
+        "expected_evidence": [
+            "A small k (e.g., k=10) aggressively favors documents ranked in the top 3 positions",
+            "large k (e.g., k=100) smooths the distribution",
+            "prevents high absolute score outliers in one system from overwhelming consensus rankings",
+        ],
+        "relevance_judgments": {"doc_014": 2, "doc_015": 2, "doc_016": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_dev_014",
+        "query": "Why is stage-one Recall@K critical for two-stage retrieval systems, and how do funnel sizes transition from stage one to stage two?",
+        "category": "multi_hop",
+        "split": "dev",
+        "reference_answer": "High Recall@K at stage one (fetching 50 to 100 candidates) is essential because downstream CrossEncoder rerankers can only reorder candidates present in the initial candidate pool; any relevant document missed by stage one can never be recovered.",
+        "source_doc_ids": ["doc_018", "doc_031"],
+        "expected_evidence": [
+            "fast hybrid retrieval (Dense + BM25) fetches 50 to 100 candidate documents",
+            "reranks only the top 10 to 20 candidates",
+            "downstream rerankers cannot score relevant passages that failed to pass the initial retrieval filter",
+        ],
+        "relevance_judgments": {"doc_018": 2, "doc_031": 2, "doc_017": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_dev_015",
+        "query": "How do sliding window overlap strategies preserve cross-boundary phrases during chunking, and how does context deduplication clean up multi-chunk prompt results?",
+        "category": "multi_hop",
+        "split": "dev",
+        "reference_answer": "Sliding window overlap (32 to 64 tokens) ensures phrases straddling chunk boundaries appear intact in at least one retrieved chunk. When multiple overlapping chunks from the same document are retrieved, a context deduplicator merges them into a single contiguous window to prevent wasting prompt tokens.",
+        "source_doc_ids": ["doc_004", "doc_024"],
+        "expected_evidence": [
+            "overlap parameter (typically 32 to 64 tokens) ensures that query-matching phrases straddling a chunk boundary appear intact",
+            "context deduplicator merges overlapping chunks into a single contiguous context window before final prompt synthesis",
+        ],
+        "relevance_judgments": {"doc_004": 2, "doc_024": 2, "doc_001": 1, "doc_021": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_dev_016",
+        "query": "How do Level 1 and Level 2 caches interact with index mutation versioning to prevent serving stale answers?",
+        "category": "multi_hop",
+        "split": "dev",
+        "reference_answer": "FastRAG's Level 1 cache stores full generated answers while Level 2 stores query embedding vectors. To prevent stale responses after knowledge updates, cache entries are cryptographically tagged with the active corpus version hash, automatically invalidating stale entries upon document changes.",
+        "source_doc_ids": ["doc_025", "doc_026"],
+        "expected_evidence": [
+            "Level 1 Query Cache stores completed end-to-end responses",
+            "Level 2 Embedding Cache stores query embedding vectors",
+            "cache entries are tagged with the active corpus version hash. Any document insertion, update, or deletion increments the index version",
+        ],
+        "relevance_judgments": {"doc_025": 2, "doc_026": 2, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_dev_017",
+        "query": "How does asynchronous non-blocking IO in FastAPI coordinate with asyncio.gather to minimize concurrent retrieval latency?",
+        "category": "multi_hop",
+        "split": "dev",
+        "reference_answer": "FastAPI delegates vector search and BM25 execution to non-blocking worker threads, while asyncio.gather dispatches both retriever branches in parallel, keeping the main event loop responsive and reducing latency to the slower of the two retrievers.",
+        "source_doc_ids": ["doc_013", "doc_028"],
+        "expected_evidence": [
+            "dispatching both retrievers concurrently via Python's asyncio.gather, total wall-clock retrieval time is reduced to max(T_dense, T_lexical)",
+            "delegating vector search and model inference to non-blocking worker threads or external async clients, the main thread remains responsive",
+        ],
+        "relevance_judgments": {"doc_013": 2, "doc_028": 2, "doc_027": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_dev_018",
+        "query": "When should evaluation rely on MRR versus nDCG, and how do their underlying relevance assumptions differ?",
+        "category": "multi_hop",
+        "split": "dev",
+        "reference_answer": "MRR evaluates the rank of the first relevant document assuming a binary relevance model (best for single-answer QA), whereas nDCG evaluates multi-document ranked lists using graded relevance levels (0, 1, 2) with logarithmic rank decay.",
+        "source_doc_ids": ["doc_029", "doc_030"],
+        "expected_evidence": [
+            "MRR measures how early the first relevant document appears",
+            "QA scenarios where a single comprehensive passage suffices",
+            "nDCG evaluates ranked retrieval lists using graded relevance judgments",
+            "Discounted Cumulative Gain (DCG) applies logarithmic decay",
+        ],
+        "relevance_judgments": {"doc_029": 2, "doc_030": 2, "doc_031": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_dev_019",
+        "query": "How do context assembly token budgeting and prompt boundary ordering work together to optimize prompt construction?",
+        "category": "multi_hop",
+        "split": "dev",
+        "reference_answer": "Context assembly first applies greedy knapsack packing to fit the highest-scoring passages into a strict token budget, and then strategically reorders those passages to place the most critical evidence at prompt boundaries to counter the lost-in-the-middle effect.",
+        "source_doc_ids": ["doc_021", "doc_022"],
+        "expected_evidence": [
+            "Greedy knapsack packing selects top-ranked passages until the context budget is exhausted",
+            "Strategic context ordering places the highest-relevance passages at the prompt boundaries",
+        ],
+        "relevance_judgments": {"doc_021": 2, "doc_022": 2, "doc_023": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_dev_020",
+        "query": "How do explicit source provenance citation tags support the Faithfulness metric in the RAG Triad framework?",
+        "category": "multi_hop",
+        "split": "dev",
+        "reference_answer": "Explicit source tags like [Doc-1] instruct the LLM to link each factual statement directly back to its source document, allowing the RAG Triad's Faithfulness metric to verify whether generated claims are strictly grounded in retrieved evidence.",
+        "source_doc_ids": ["doc_023", "doc_032"],
+        "expected_evidence": [
+            "format each retrieved passage with explicit source tags like [Doc-1]",
+            "ground factual assertions using these tags, providing traceable citations",
+            "Faithfulness measures whether generated claims are strictly supported by context",
+        ],
+        "relevance_judgments": {"doc_023": 2, "doc_032": 2, "doc_021": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+
+    # --- Test ---
+    {
+        "query_id": "q2_test_011",
+        "query": "How does vector normalization to unit Euclidean length facilitate fast nearest neighbor search in HNSW graphs?",
+        "category": "multi_hop",
+        "split": "test",
+        "reference_answer": "Pre-normalizing document and query embeddings to unit Euclidean length (L2 norm = 1.0) simplifies cosine similarity to a dot product, enabling HNSW multi-layer skip-list graph traversal to evaluate nearest neighbor candidates with minimal arithmetic operations.",
+        "source_doc_ids": ["doc_006", "doc_007"],
+        "expected_evidence": [
+            "pre-normalizing all document embeddings to unit Euclidean length (L2 norm = 1.0) during offline ingestion, cosine similarity simplifies computationally to a fast vector dot product",
+            "HNSW is an Approximate Nearest Neighbor (ANN) vector indexing structure based on multi-layer skip-list graphs",
+        ],
+        "relevance_judgments": {"doc_006": 2, "doc_007": 2, "doc_005": 1, "doc_008": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_test_012",
+        "query": "What are the trade-offs between HNSW graph exploration and IVF-PQ vector quantization regarding RAM and latency?",
+        "category": "multi_hop",
+        "split": "test",
+        "reference_answer": "HNSW delivers sub-millisecond query latency and high recall via multi-layer graphs but requires significant RAM for graph links, whereas IVF-PQ partitions space into Voronoi cells and compresses vectors via product quantization, dramatically reducing RAM at the expense of slightly lower recall.",
+        "source_doc_ids": ["doc_007", "doc_008"],
+        "expected_evidence": [
+            "HNSW delivers sub-millisecond retrieval latency with high recall",
+            "IVF-PQ partitions vector space into Voronoi cells via k-means clustering and compresses high-dimensional vectors into compact byte codes",
+            "IVF-PQ significantly reduces RAM consumption at the cost of slight recall degradation",
+        ],
+        "relevance_judgments": {"doc_007": 2, "doc_008": 2, "doc_005": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_test_013",
+        "query": "How do inverted index posting lists facilitate exact keyword lookups, and how does BM25 parameter k1 prevent term saturation?",
+        "category": "multi_hop",
+        "split": "test",
+        "reference_answer": "Inverted index posting lists map terms directly to document IDs and frequencies for fast exact matching of rare tokens. BM25 uses parameter k1 to control term frequency saturation, ensuring repeated occurrences of a keyword reach diminishing returns.",
+        "source_doc_ids": ["doc_009", "doc_010"],
+        "expected_evidence": [
+            "inverted index maps distinct vocabulary terms to posting lists containing document IDs, term frequencies",
+            "term frequency saturation parameter k1 (typically 1.2 to 2.0) controls how quickly additional occurrences of a term reach diminishing returns",
+        ],
+        "relevance_judgments": {"doc_009": 2, "doc_010": 2, "doc_012": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_test_014",
+        "query": "Why should BM25 parameters k1 and b be adjusted when indexing technical manuals containing both code signatures and long tutorials?",
+        "category": "multi_hop",
+        "split": "test",
+        "reference_answer": "Default BM25 parameters over-penalize short technical documents; setting b=0.5 dampens length normalization so concise API signatures can rank alongside tutorials, while lowering k1 toward 1.2 curbs repetitive keywords in logs.",
+        "source_doc_ids": ["doc_009", "doc_012"],
+        "expected_evidence": [
+            "parameter b (typically 0.75) penalizes long documents by normalizing term frequency",
+            "Setting b=0.5 dampens excessive length penalties, preventing brief function signatures from drowning out detailed architectural guides",
+            "Lowering k1 toward 1.2 curbs the influence of repeated keywords",
+        ],
+        "relevance_judgments": {"doc_009": 2, "doc_012": 2, "doc_010": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_test_015",
+        "query": "How does Reciprocal Rank Fusion resolve document deduplication when dense and lexical retrievers return the same document IDs?",
+        "category": "multi_hop",
+        "split": "test",
+        "reference_answer": "When dense and BM25 retrievers return overlapping documents, RRF naturally deduplicates candidates by summing the reciprocal rank bonuses (1 / (k + rank)) across each system where the document appears, elevating consensus candidates.",
+        "source_doc_ids": ["doc_014", "doc_016"],
+        "expected_evidence": [
+            "RRF score is computed as sum(1 / (k + rank_m(d))) across all retrieval systems m",
+            "RRF naturally handle deduplication by summing reciprocal rank bonuses whenever a document identifier appears across multiple retriever result sets",
+        ],
+        "relevance_judgments": {"doc_014": 2, "doc_016": 2, "doc_015": 1, "doc_011": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_test_016",
+        "query": "Why does evaluating CrossEncoder pairs in batches optimize tail latency during the second stage of retrieval?",
+        "category": "multi_hop",
+        "split": "test",
+        "reference_answer": "Evaluating CrossEncoder pairs sequentially creates high latency due to O(N * L^2) complexity; batching pairs into a single tensor leverages SIMD and GPU matrix acceleration, keeping reranking latency bounded within SLA limits.",
+        "source_doc_ids": ["doc_017", "doc_019"],
+        "expected_evidence": [
+            "CrossEncoders have O(N * L^2) computational cost",
+            "Evaluating CrossEncoder pairs sequentially introduces unacceptable tail latency",
+            "Batching candidate pairs into a single tensor evaluation leverages SIMD and GPU matrix acceleration",
+        ],
+        "relevance_judgments": {"doc_017": 2, "doc_019": 2, "doc_018": 1, "doc_020": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_test_017",
+        "query": "How do knowledge-distilled models like MiniLM and BGE-Reranker-Base maintain reranking precision while avoiding latency bottlenecks?",
+        "category": "multi_hop",
+        "split": "test",
+        "reference_answer": "Large 3B+ parameter CrossEncoders introduce serving bottlenecks; distilled lightweight models like MS-MARCO MiniLM-L6 or BGE-Reranker-Base retain full cross-attention precision advantages while delivering sub-15ms inference for 10-candidate batches.",
+        "source_doc_ids": ["doc_017", "doc_020"],
+        "expected_evidence": [
+            "full self-attention layers simultaneously. This allows every query token to attend to every document token",
+            "Knowledge-distilled models such as MS-MARCO MiniLM-L6 or BGE-Reranker-Base offer substantial precision improvements over bi-encoders with inference latencies under 15ms",
+        ],
+        "relevance_judgments": {"doc_017": 2, "doc_020": 2, "doc_018": 1, "doc_019": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_test_018",
+        "query": "How does Server-Sent Events (SSE) streaming reduce TTFT while the asynchronous event loop manages concurrent connections?",
+        "category": "multi_hop",
+        "split": "test",
+        "reference_answer": "FastAPI's event loop handles non-blocking IO across multiple clients, allowing the server to stream generated tokens immediately via SSE as they become available, drastically lowering perceived Time-to-First-Token (TTFT).",
+        "source_doc_ids": ["doc_027", "doc_028"],
+        "expected_evidence": [
+            "Time to First Token (TTFT) measures latency from request submission until the initial generated token arrives",
+            "Streaming LLM output using Server-Sent Events (SSE)",
+            "FastAPI combined with Uvicorn and uvloop provides an asynchronous event loop capable of handling thousands of concurrent connections",
+        ],
+        "relevance_judgments": {"doc_027": 2, "doc_028": 2, "doc_013": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_test_019",
+        "query": "Why does splitting documents by character count rather than token count disrupt prompt knapsack budgeting?",
+        "category": "multi_hop",
+        "split": "test",
+        "reference_answer": "Splitting by character count ignores variable tokenizer ratios (e.g. BPE subwords in code), causing unexpected token counts that exceed context knapsack allocations and trigger prompt truncation.",
+        "source_doc_ids": ["doc_003", "doc_021"],
+        "expected_evidence": [
+            "Splitting text by raw character length frequently leads to token count mismatches with LLM tokenizers like Byte-Pair Encoding (BPE)",
+            "Context assembly allocates a strict token budget",
+            "Greedy knapsack packing selects top-ranked passages until the context budget is exhausted, preventing prompt overflow",
+        ],
+        "relevance_judgments": {"doc_003": 2, "doc_021": 2, "doc_001": 1, "doc_022": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+    {
+        "query_id": "q2_test_020",
+        "query": "How do recursive character chunking separator hierarchies and sliding window overlap parameters work together to maintain passage coherence?",
+        "category": "multi_hop",
+        "split": "test",
+        "reference_answer": "Recursive character chunking splits text along natural boundaries (paragraphs, sentences) before resorting to character cuts, while sliding window overlap (e.g., 32-64 tokens) guarantees that phrases straddling a chunk boundary remain intact.",
+        "source_doc_ids": ["doc_001", "doc_004"],
+        "expected_evidence": [
+            "Recursive character chunking splits documents using a hierarchy of separators such as double newlines, single newlines, punctuation, and spaces",
+            "overlap parameter (typically 32 to 64 tokens) ensures that query-matching phrases straddling a chunk boundary appear intact in at least one retrieved passage",
+        ],
+        "relevance_judgments": {"doc_001": 2, "doc_004": 2, "doc_002": 1, "doc_003": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "heuristic_candidate",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "multi_topic_pairing",
+        },
+    },
+
+    # =======================================================================
+    # 3. TECHNICAL IDENTIFIERS (Dev: 10, Test: 10)
+    # =======================================================================
+    # --- Dev ---
+    {
+        "query_id": "q2_dev_021",
+        "query": "BM25 parameter k1 term frequency saturation formula",
+        "category": "technical_identifiers",
+        "split": "dev",
+        "reference_answer": "BM25 parameter k1 (typically 1.2 to 2.0) controls how quickly additional occurrences of a query term reach term frequency saturation and diminishing returns.",
+        "source_doc_ids": ["doc_009", "doc_012"],
+        "expected_evidence": ["term frequency saturation parameter k1 (typically 1.2 to 2.0) controls how quickly additional occurrences of a term reach diminishing returns"],
+        "relevance_judgments": {"doc_009": 2, "doc_012": 2, "doc_010": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_022",
+        "query": "HNSW efConstruction hyperparameter candidate list",
+        "category": "technical_identifiers",
+        "split": "dev",
+        "reference_answer": "efConstruction specifies the size of the dynamic candidate list evaluated during HNSW vector index construction, trading build time for nearest neighbor recall.",
+        "source_doc_ids": ["doc_007"],
+        "expected_evidence": ["efConstruction (size of dynamic candidate list during graph building)"],
+        "relevance_judgments": {"doc_007": 2, "doc_008": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_023",
+        "query": "IVF-PQ nprobe parameter Voronoi centroids",
+        "category": "technical_identifiers",
+        "split": "dev",
+        "reference_answer": "In IVF-PQ, nprobe defines the number of nearest Voronoi centroid cells decompressed and scored during query execution.",
+        "source_doc_ids": ["doc_008"],
+        "expected_evidence": ["only vectors belonging to the nearest Voronoi centroids (nprobe) are decompressed and scored"],
+        "relevance_judgments": {"doc_008": 2, "doc_007": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_024",
+        "query": "RRF smoothing constant k=60 reciprocal rank fusion",
+        "category": "technical_identifiers",
+        "split": "dev",
+        "reference_answer": "In Reciprocal Rank Fusion, k=60 is the traditional smoothing constant used in the denominator sum(1 / (k + rank)) to calibrate rank weightings.",
+        "source_doc_ids": ["doc_014", "doc_015"],
+        "expected_evidence": ["RRF score is computed as sum(1 / (k + rank_m(d))) across all retrieval systems m, where k is a smoothing constant (traditionally k=60)"],
+        "relevance_judgments": {"doc_014": 2, "doc_015": 2, "doc_016": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_025",
+        "query": "MS-MARCO MiniLM-L6 CrossEncoder reranker",
+        "category": "technical_identifiers",
+        "split": "dev",
+        "reference_answer": "MS-MARCO MiniLM-L6 is a lightweight distilled CrossEncoder model providing inference latencies under 15ms for candidate batches.",
+        "source_doc_ids": ["doc_020"],
+        "expected_evidence": ["Knowledge-distilled models such as MS-MARCO MiniLM-L6 or BGE-Reranker-Base offer substantial precision improvements over bi-encoders with inference latencies under 15ms"],
+        "relevance_judgments": {"doc_020": 2, "doc_017": 1, "doc_019": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_026",
+        "query": "asyncio.gather concurrent retrieval dispatch",
+        "category": "technical_identifiers",
+        "split": "dev",
+        "reference_answer": "Python's asyncio.gather dispatches dense ANN and BM25 searches concurrently, bounding total latency to max(T_dense, T_lexical).",
+        "source_doc_ids": ["doc_013"],
+        "expected_evidence": ["dispatching both retrievers concurrently via Python's asyncio.gather, total wall-clock retrieval time is reduced to max(T_dense, T_lexical)"],
+        "relevance_judgments": {"doc_013": 2, "doc_028": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_027",
+        "query": "BPE Byte-Pair Encoding subword tokenizer",
+        "category": "technical_identifiers",
+        "split": "dev",
+        "reference_answer": "Byte-Pair Encoding (BPE) is a subword tokenization scheme whose token counts can diverge significantly from raw character counts in technical text.",
+        "source_doc_ids": ["doc_003"],
+        "expected_evidence": ["token count mismatches with LLM tokenizers like Byte-Pair Encoding (BPE) or WordPiece"],
+        "relevance_judgments": {"doc_003": 2, "doc_001": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_028",
+        "query": "L2 norm unit Euclidean length vector normalization",
+        "category": "technical_identifiers",
+        "split": "dev",
+        "reference_answer": "Normalizing vectors to unit Euclidean length (L2 norm = 1.0) equates cosine similarity directly to vector dot product.",
+        "source_doc_ids": ["doc_006"],
+        "expected_evidence": ["pre-normalizing all document embeddings to unit Euclidean length (L2 norm = 1.0) during offline ingestion, cosine similarity simplifies computationally to a fast vector dot product"],
+        "relevance_judgments": {"doc_006": 2, "doc_005": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_029",
+        "query": "Server-Sent Events SSE TTFT streaming",
+        "category": "technical_identifiers",
+        "split": "dev",
+        "reference_answer": "Server-Sent Events (SSE) enables streaming LLM token delivery to minimize perceived Time-to-First-Token (TTFT) latency.",
+        "source_doc_ids": ["doc_027"],
+        "expected_evidence": ["Streaming LLM output using Server-Sent Events (SSE) or HTTP chunked transfer dramatically reduces perceived latency"],
+        "relevance_judgments": {"doc_027": 2, "doc_028": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_030",
+        "query": "Faithfulness Context Relevance Answer Relevance RAG Triad",
+        "category": "technical_identifiers",
+        "split": "dev",
+        "reference_answer": "The RAG Triad consists of three evaluation metrics: Context Relevance, Faithfulness, and Answer Relevance.",
+        "source_doc_ids": ["doc_032"],
+        "expected_evidence": ["RAG Triad Metrics: Faithfulness, Answer Relevance, and Context Relevance"],
+        "relevance_judgments": {"doc_032": 2, "doc_023": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+
+    # --- Test ---
+    {
+        "query_id": "q2_test_021",
+        "query": "BM25 parameter b=0.5 document length normalization",
+        "category": "technical_identifiers",
+        "split": "test",
+        "reference_answer": "In BM25, tuning parameter b to 0.5 dampens the document length penalty for technical documentation collections.",
+        "source_doc_ids": ["doc_009", "doc_012"],
+        "expected_evidence": ["Setting b=0.5 dampens excessive length penalties, preventing brief function signatures from drowning out detailed architectural guides"],
+        "relevance_judgments": {"doc_012": 2, "doc_009": 2, "doc_010": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_022",
+        "query": "HNSW graph links parameter M",
+        "category": "technical_identifiers",
+        "split": "test",
+        "reference_answer": "In HNSW indexing, M governs the number of bi-directional links constructed per node across graph layers.",
+        "source_doc_ids": ["doc_007"],
+        "expected_evidence": ["Key hyperparameters include M (number of bi-directional links per node)"],
+        "relevance_judgments": {"doc_007": 2, "doc_008": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_023",
+        "query": "BGE-Reranker-Base knowledge distillation",
+        "category": "technical_identifiers",
+        "split": "test",
+        "reference_answer": "BGE-Reranker-Base is a distilled lightweight reranker designed to achieve high precision with low latency overhead.",
+        "source_doc_ids": ["doc_020"],
+        "expected_evidence": ["Knowledge-distilled models such as MS-MARCO MiniLM-L6 or BGE-Reranker-Base offer substantial precision improvements"],
+        "relevance_judgments": {"doc_020": 2, "doc_017": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_024",
+        "query": "Porter Snowball stemming inverted index posting list",
+        "category": "technical_identifiers",
+        "split": "test",
+        "reference_answer": "Porter and Snowball stemmers preprocess vocabulary terms when building lexical inverted index posting lists.",
+        "source_doc_ids": ["doc_010"],
+        "expected_evidence": ["Text preprocessing typically includes lowercasing, punctuation stripping, stop word filtering, and Porter or Snowball stemming"],
+        "relevance_judgments": {"doc_010": 2, "doc_009": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_025",
+        "query": "O(N * L^2) cross-attention self-attention complexity",
+        "category": "technical_identifiers",
+        "split": "test",
+        "reference_answer": "CrossEncoders exhibit O(N * L^2) complexity because query and candidate tokens are evaluated jointly in self-attention.",
+        "source_doc_ids": ["doc_017"],
+        "expected_evidence": ["CrossEncoders have O(N * L^2) computational cost, making them suitable only for small reranking candidate windows"],
+        "relevance_judgments": {"doc_017": 2, "doc_005": 1, "doc_019": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_026",
+        "query": "Greedy knapsack token budgeting context assembly",
+        "category": "technical_identifiers",
+        "split": "test",
+        "reference_answer": "Greedy knapsack packing allocates available prompt context tokens across top-ranked retrieved passages.",
+        "source_doc_ids": ["doc_021"],
+        "expected_evidence": ["Greedy knapsack packing selects top-ranked passages until the context budget is exhausted"],
+        "relevance_judgments": {"doc_021": 2, "doc_022": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_027",
+        "query": "Level 1 Query Cache and Level 2 Embedding Cache",
+        "category": "technical_identifiers",
+        "split": "test",
+        "reference_answer": "FastRAG's two-tier caching architecture consists of Level 1 (Query Response Cache) and Level 2 (Embedding Vector Cache).",
+        "source_doc_ids": ["doc_025"],
+        "expected_evidence": ["Level 1 Query Cache stores completed end-to-end responses", "Level 2 Embedding Cache stores query embedding vectors in-memory"],
+        "relevance_judgments": {"doc_025": 2, "doc_026": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_028",
+        "query": "Uvicorn uvloop FastAPI async IO non-blocking",
+        "category": "technical_identifiers",
+        "split": "test",
+        "reference_answer": "FastAPI with Uvicorn and uvloop provides an asynchronous non-blocking event loop capable of high concurrent request throughput.",
+        "source_doc_ids": ["doc_028"],
+        "expected_evidence": ["FastAPI combined with Uvicorn and uvloop provides an asynchronous event loop capable of handling thousands of concurrent connections"],
+        "relevance_judgments": {"doc_028": 2, "doc_013": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_029",
+        "query": "Normalized Discounted Cumulative Gain nDCG IDCG",
+        "category": "technical_identifiers",
+        "split": "test",
+        "reference_answer": "nDCG evaluates graded relevance by dividing Discounted Cumulative Gain (DCG) by Ideal DCG (IDCG) to normalize the score to [0.0, 1.0].",
+        "source_doc_ids": ["doc_030"],
+        "expected_evidence": ["Dividing DCG by Ideal DCG (IDCG) normalizes the metric to [0.0, 1.0]"],
+        "relevance_judgments": {"doc_030": 2, "doc_029": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_test_030",
+        "query": "Corpus version hash cache invalidation index mutation",
+        "category": "technical_identifiers",
+        "split": "test",
+        "reference_answer": "FastRAG tags cache entries with a corpus version hash, automatically invalidating stale entries when index mutations occur.",
+        "source_doc_ids": ["doc_026"],
+        "expected_evidence": ["cache entries are tagged with the active corpus version hash. Any document insertion, update, or deletion increments the index version, invalidating outdated cache entries automatically"],
+        "relevance_judgments": {"doc_026": 2, "doc_025": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+
+    # =======================================================================
+    # 4. UNANSWERABLE / NEGATIVE (Dev: 10, Test: 10)
+    # =======================================================================
+    # Questions on ML/RAG/Database topics not contained in the 36-doc corpus.
+    # Source doc ids: empty; expected evidence: empty; reference answer: statement of insufficiency.
+    # --- Dev ---
+    {
+        "query_id": "q2_dev_031",
+        "query": "How does GraphRAG extract knowledge graph entity triplets from source documents?",
+        "category": "unanswerable_negative",
+        "split": "dev",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_001": 0, "doc_005": 0, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_032",
+        "query": "What is the token-level late interaction scoring mechanism used in ColBERT?",
+        "category": "unanswerable_negative",
+        "split": "dev",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_005": 0, "doc_017": 0, "doc_018": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_033",
+        "query": "How does speculative decoding accelerate LLM token generation using an auxiliary draft model?",
+        "category": "unanswerable_negative",
+        "split": "dev",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_027": 0, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_034",
+        "query": "What are the mathematical differences between BM25+ and BM25L document length normalization lower bounds?",
+        "category": "unanswerable_negative",
+        "split": "dev",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_009": 0, "doc_012": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_035",
+        "query": "How do sparse autoencoders identify monosemantic feature representations in Transformer residual streams?",
+        "category": "unanswerable_negative",
+        "split": "dev",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_005": 0, "doc_017": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_036",
+        "query": "How does SPLADE predict learned lexical term expansion weights via masked language modeling?",
+        "category": "unanswerable_negative",
+        "split": "dev",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_010": 0, "doc_011": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_037",
+        "query": "What is the memory layout of GGUF quantized models used in llama.cpp runtime engines?",
+        "category": "unanswerable_negative",
+        "split": "dev",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_008": 0, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_038",
+        "query": "How does multi-tenant row-level security isolate PostgreSQL pgvector table partitions?",
+        "category": "unanswerable_negative",
+        "split": "dev",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_033": 0, "doc_025": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_039",
+        "query": "What is the rank decomposition loss formulation for Low-Rank Adaptation (LoRA) fine-tuning?",
+        "category": "unanswerable_negative",
+        "split": "dev",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_005": 0, "doc_020": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_040",
+        "query": "How does Hypothetical Document Embeddings (HyDE) generate zero-shot documents for dense retrieval query expansion?",
+        "category": "unanswerable_negative",
+        "split": "dev",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_005": 0, "doc_011": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+
+    # --- Test ---
+    {
+        "query_id": "q2_test_031",
+        "query": "How does FlashAttention-3 leverage warp specialization on NVIDIA Hopper architecture GPUs?",
+        "category": "unanswerable_negative",
+        "split": "test",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_017": 0, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_test_032",
+        "query": "What routing algorithm does Mixtral-8x7B use to select the top-2 experts per token?",
+        "category": "unanswerable_negative",
+        "split": "test",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_005": 0, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_test_033",
+        "query": "How does Qdrant implement payload filtering with constrained HNSW graph traversal?",
+        "category": "unanswerable_negative",
+        "split": "test",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_007": 0, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_test_034",
+        "query": "What is the mathematical formulation of Direct Preference Optimization (DPO) compared to PPO?",
+        "category": "unanswerable_negative",
+        "split": "test",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_032": 0, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_test_035",
+        "query": "How does vLLM implement PagedAttention to eliminate memory fragmentation in the KV cache?",
+        "category": "unanswerable_negative",
+        "split": "test",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_025": 0, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_test_036",
+        "query": "How does Dense Passage Retrieval (DPR) mine in-batch negative passages during bi-encoder training?",
+        "category": "unanswerable_negative",
+        "split": "test",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_005": 0, "doc_018": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_test_037",
+        "query": "How do rotary position embeddings (RoPE) extrapolate attention contexts beyond 128k tokens?",
+        "category": "unanswerable_negative",
+        "split": "test",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_021": 0, "doc_022": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_test_038",
+        "query": "What are the configuration parameters for Weaviate multi-tenancy schema definitions?",
+        "category": "unanswerable_negative",
+        "split": "test",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_007": 0, "doc_025": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_test_039",
+        "query": "How does DeepSpeed ZeRO-Stage 3 partition optimizer states and model parameters across GPUs?",
+        "category": "unanswerable_negative",
+        "split": "test",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_019": 0, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+    {
+        "query_id": "q2_test_040",
+        "query": "What is the mathematical formulation of Self-RAG reflection tokens for adaptive retrieval triggering?",
+        "category": "unanswerable_negative",
+        "split": "test",
+        "reference_answer": None,
+        "source_doc_ids": [],
+        "expected_evidence": [],
+        "relevance_judgments": {"doc_018": 0, "doc_032": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_negative_design",
+        },
+    },
+
+    # =======================================================================
+    # 5. AMBIGUOUS / UNDERSPECIFIED (Dev: 10, Test: 10)
+    # =======================================================================
+    # --- Dev ---
+    {
+        "query_id": "q2_dev_041",
+        "query": "How does caching work?",
+        "category": "ambiguous_underspecified",
+        "split": "dev",
+        "reference_answer": "Caching operates differently depending on context: in FastRAG software, Tier 1 response cache stores completed answers and Tier 2 embedding cache stores vectors, whereas in computer hardware, L1/L2/L3 CPU caches bridge the DRAM latency gap using 64-byte cache lines.",
+        "source_doc_ids": ["doc_025", "doc_036"],
+        "expected_evidence": ["FastRAG uses a two-tier caching architecture", "Modern multi-core processors implement multi-level hardware caches"],
+        "relevance_judgments": {"doc_025": 2, "doc_036": 2, "doc_026": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_expert_curation",
+        },
+    },
+    {
+        "query_id": "q2_dev_042",
+        "query": "What is the optimal value of k?",
+        "category": "ambiguous_underspecified",
+        "split": "dev",
+        "reference_answer": "The meaning of k is ambiguous: in RRF, smoothing constant k is traditionally 60 (or tuned from 10 to 100); in BM25, parameter k1 is typically 1.2 to 2.0; and in top-k candidate retrieval, k typically ranges from 10 to 100.",
+        "source_doc_ids": ["doc_009", "doc_014", "doc_015", "doc_031"],
+        "expected_evidence": [
+            "BM25 term frequency saturation parameter k1 (typically 1.2 to 2.0)",
+            "where k is a smoothing constant (traditionally k=60)",
+            "Recall@K calculates the proportion of all relevant documents captured within the top-k",
+        ],
+        "relevance_judgments": {"doc_014": 2, "doc_015": 2, "doc_009": 2, "doc_031": 2, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_043",
+        "query": "How to reduce index size?",
+        "category": "ambiguous_underspecified",
+        "split": "dev",
+        "reference_answer": "Index size reduction depends on index type: vector indexes use IVF-PQ to compress vectors into byte codes, while lexical indexes use stop word filtering and stemming to compress inverted posting lists.",
+        "source_doc_ids": ["doc_008", "doc_010"],
+        "expected_evidence": [
+            "IVF-PQ significantly reduces RAM consumption at the cost of slight recall degradation",
+            "Text preprocessing typically includes lowercasing, punctuation stripping, stop word filtering, and Porter or Snowball stemming",
+        ],
+        "relevance_judgments": {"doc_008": 2, "doc_010": 2, "doc_007": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_044",
+        "query": "What is the complexity of search?",
+        "category": "ambiguous_underspecified",
+        "split": "dev",
+        "reference_answer": "Search complexity varies: CrossEncoders have O(N * L^2) complexity, bi-encoders evaluate fast vector dot products over pre-computed vectors, and relational database B-Trees have O(log N) point lookup complexity.",
+        "source_doc_ids": ["doc_005", "doc_017", "doc_033"],
+        "expected_evidence": [
+            "Query vectors are compared against document vectors using dot product or cosine similarity",
+            "CrossEncoders have O(N * L^2) computational cost",
+            "B-Trees keep keys sorted, enabling logarithmic O(log N) point lookups",
+        ],
+        "relevance_judgments": {"doc_017": 2, "doc_005": 2, "doc_033": 2, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_045",
+        "query": "How to prevent splitting text across boundaries?",
+        "category": "ambiguous_underspecified",
+        "split": "dev",
+        "reference_answer": "Preventing boundary splits can be addressed via recursive character chunking (hierarchy of separators), semantic chunking (embedding distance between sentences), or sliding window overlap (stride with overlapping token margins).",
+        "source_doc_ids": ["doc_001", "doc_002", "doc_004"],
+        "expected_evidence": [
+            "By prioritizing semantic boundaries before falling back to arbitrary character cuts, it preserves paragraph and sentence coherence",
+            "semantic chunking avoids splitting tightly coupled arguments across separate chunks",
+            "overlap parameter (typically 32 to 64 tokens) ensures that query-matching phrases straddling a chunk boundary appear intact",
+        ],
+        "relevance_judgments": {"doc_001": 2, "doc_002": 2, "doc_004": 2, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_046",
+        "query": "How are embeddings compared?",
+        "category": "ambiguous_underspecified",
+        "split": "dev",
+        "reference_answer": "Dense embeddings are compared via cosine similarity or dot product in a shared vector space, which become mathematically equivalent when vectors are normalized to unit Euclidean length.",
+        "source_doc_ids": ["doc_005", "doc_006"],
+        "expected_evidence": [
+            "Query vectors are compared against document vectors using dot product or cosine similarity during online search",
+            "cosine similarity simplifies computationally to a fast vector dot product",
+        ],
+        "relevance_judgments": {"doc_005": 2, "doc_006": 2, "doc_007": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_047",
+        "query": "What causes retrieval latency?",
+        "category": "ambiguous_underspecified",
+        "split": "dev",
+        "reference_answer": "Retrieval latency can stem from sequential retriever dispatch, unbatched CrossEncoder pair evaluation with O(N * L^2) self-attention, or excessive candidate funnel sizing.",
+        "source_doc_ids": ["doc_013", "doc_017", "doc_019"],
+        "expected_evidence": [
+            "Sequential execution of dense ANN search and BM25 search accumulates latency",
+            "CrossEncoders have O(N * L^2) computational cost",
+            "Evaluating CrossEncoder pairs sequentially introduces unacceptable tail latency",
+        ],
+        "relevance_judgments": {"doc_013": 2, "doc_017": 2, "doc_019": 2, "doc_028": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_048",
+        "query": "How to evaluate ranking accuracy?",
+        "category": "ambiguous_underspecified",
+        "split": "dev",
+        "reference_answer": "Ranking accuracy is evaluated using MRR (rank of the first relevant document), nDCG (graded relevance with logarithmic position decay), or Recall@K (coverage of all relevant documents within top-k).",
+        "source_doc_ids": ["doc_029", "doc_030", "doc_031"],
+        "expected_evidence": [
+            "MRR measures how early the first relevant document appears",
+            "nDCG evaluates ranked retrieval lists using graded relevance judgments",
+            "Recall@K calculates the proportion of all relevant documents captured within the top-k",
+        ],
+        "relevance_judgments": {"doc_029": 2, "doc_030": 2, "doc_031": 2, "doc_032": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_049",
+        "query": "How to handle deduplication in pipelines?",
+        "category": "ambiguous_underspecified",
+        "split": "dev",
+        "reference_answer": "Deduplication applies at two pipeline stages: RRF handles candidate deduplication during hybrid rank fusion, while context deduplication merges overlapping chunks from the same document prior to LLM prompt assembly.",
+        "source_doc_ids": ["doc_016", "doc_024"],
+        "expected_evidence": [
+            "Rank fusion methods like RRF naturally handle deduplication by summing reciprocal rank bonuses",
+            "context deduplicator merges overlapping chunks into a single contiguous context window before final prompt synthesis",
+        ],
+        "relevance_judgments": {"doc_016": 2, "doc_024": 2, "doc_014": 1, "doc_021": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_050",
+        "query": "What is the difference between lexical and database search?",
+        "category": "ambiguous_underspecified",
+        "split": "dev",
+        "reference_answer": "Lexical search (like BM25 with inverted indexes) ranks unstructured documents by term frequency and inverse document frequency, whereas relational database search (using B-Trees) executes exact logarithmic index point lookups or range scans over structured tables.",
+        "source_doc_ids": ["doc_010", "doc_033"],
+        "expected_evidence": [
+            "inverted index maps distinct vocabulary terms to posting lists",
+            "Relational database engines use balanced trees (B-Trees and B+Trees) to index primary keys and secondary columns",
+        ],
+        "relevance_judgments": {"doc_010": 2, "doc_033": 2, "doc_009": 1, "doc_034": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+
+    # --- Test ---
+    {
+        "query_id": "q2_test_041",
+        "query": "Why is precision low?",
+        "category": "ambiguous_underspecified",
+        "split": "test",
+        "reference_answer": "Low precision can be caused by relying solely on bi-encoders without full cross-attention reranking, misconfigured BM25 length penalties, or omitting a secondary CrossEncoder reranker.",
+        "source_doc_ids": ["doc_011", "doc_012", "doc_017", "doc_018"],
+        "expected_evidence": [
+            "dense bi-encoders capture semantic meaning... but struggle with exact alphanumeric strings",
+            "Setting b=0.5 dampens excessive length penalties",
+            "CrossEncoders have O(N * L^2) computational cost... reranks only the top 10 to 20 candidates, optimizing top-k precision",
+        ],
+        "relevance_judgments": {"doc_017": 2, "doc_018": 2, "doc_011": 1, "doc_012": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_test_042",
+        "query": "How to optimize prompt context?",
+        "category": "ambiguous_underspecified",
+        "split": "test",
+        "reference_answer": "Optimizing prompt context requires token budgeting (knapsack packing), lost-in-the-middle ordering (placing best passages at boundaries), and chunk deduplication to eliminate overlapping headers.",
+        "source_doc_ids": ["doc_021", "doc_022", "doc_024"],
+        "expected_evidence": [
+            "Greedy knapsack packing selects top-ranked passages until the context budget is exhausted",
+            "Strategic context ordering places the highest-relevance passages at the prompt boundaries",
+            "context deduplicator merges overlapping chunks into a single contiguous context window",
+        ],
+        "relevance_judgments": {"doc_021": 2, "doc_022": 2, "doc_024": 2, "doc_023": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_test_043",
+        "query": "What parameters need tuning in retrieval?",
+        "category": "ambiguous_underspecified",
+        "split": "test",
+        "reference_answer": "Depending on the component: BM25 requires tuning k1 and b; RRF requires tuning smoothing constant k; and HNSW requires configuring M and efConstruction.",
+        "source_doc_ids": ["doc_007", "doc_009", "doc_012", "doc_015"],
+        "expected_evidence": [
+            "Key hyperparameters include M (number of bi-directional links per node) and efConstruction",
+            "BM25 parameter k1 and b",
+            "RRF constant k regulates the ranking penalty",
+        ],
+        "relevance_judgments": {"doc_007": 2, "doc_009": 2, "doc_012": 2, "doc_015": 2, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_test_044",
+        "query": "How to stream responses?",
+        "category": "ambiguous_underspecified",
+        "split": "test",
+        "reference_answer": "Streaming is implemented by emitting tokens over Server-Sent Events (SSE) or HTTP chunked transfer while managing non-blocking IO via FastAPI and Uvicorn.",
+        "source_doc_ids": ["doc_027", "doc_028"],
+        "expected_evidence": [
+            "Streaming LLM output using Server-Sent Events (SSE) or HTTP chunked transfer",
+            "FastAPI combined with Uvicorn and uvloop provides an asynchronous event loop",
+        ],
+        "relevance_judgments": {"doc_027": 2, "doc_028": 2, "doc_013": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_test_045",
+        "query": "What metrics test generation quality vs retrieval quality?",
+        "category": "ambiguous_underspecified",
+        "split": "test",
+        "reference_answer": "Retrieval quality is measured by IR metrics like MRR, nDCG, and Recall@K, whereas generation quality is evaluated using the RAG Triad: Context Relevance, Faithfulness, and Answer Relevance.",
+        "source_doc_ids": ["doc_029", "doc_030", "doc_031", "doc_032"],
+        "expected_evidence": [
+            "MRR measures how early the first relevant document appears",
+            "nDCG evaluates ranked retrieval lists",
+            "Recall@K calculates the proportion of all relevant documents captured",
+            "RAG Triad Metrics: Faithfulness, Answer Relevance, and Context Relevance",
+        ],
+        "relevance_judgments": {"doc_032": 2, "doc_029": 2, "doc_030": 2, "doc_031": 2, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_test_046",
+        "query": "Why do exact matches fail in dense search?",
+        "category": "ambiguous_underspecified",
+        "split": "test",
+        "reference_answer": "Dense bi-encoders map text to continuous vectors and frequently distort rare alphanumeric codes, exact identifiers, and out-of-vocabulary terms, which inverted indexes handle naturally via exact token postings.",
+        "source_doc_ids": ["doc_005", "doc_010", "doc_011"],
+        "expected_evidence": [
+            "Dense vector retrieval maps unstructured text into continuous vector representations",
+            "Inverted indexes excel at exact identifier lookups, code token queries, and rare acronym matching",
+            "dense bi-encoders capture semantic meaning... but struggle with exact alphanumeric strings",
+        ],
+        "relevance_judgments": {"doc_011": 2, "doc_010": 2, "doc_005": 2, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_test_047",
+        "query": "How to configure two-stage search?",
+        "category": "ambiguous_underspecified",
+        "split": "test",
+        "reference_answer": "Two-stage search is configured by setting stage-one hybrid retrieval to fetch 50 to 100 candidate documents for high recall, followed by a batched CrossEncoder reranking the top 10 to 20 passages for high precision.",
+        "source_doc_ids": ["doc_018", "doc_019", "doc_031"],
+        "expected_evidence": [
+            "fast hybrid retrieval (Dense + BM25) fetches 50 to 100 candidate documents... lightweight CrossEncoder reranks only the top 10 to 20 candidates",
+            "Batching candidate pairs into a single tensor evaluation leverages SIMD and GPU matrix acceleration",
+            "high Recall@K at stage one (e.g., k=50 or k=100) is critical",
+        ],
+        "relevance_judgments": {"doc_018": 2, "doc_019": 2, "doc_031": 2, "doc_017": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_test_048",
+        "query": "What happens when source text changes?",
+        "category": "ambiguous_underspecified",
+        "split": "test",
+        "reference_answer": "When source text is updated or inserted, FastRAG increments the active corpus version hash, automatically invalidating stale Tier 1 response cache entries and requiring index updates.",
+        "source_doc_ids": ["doc_026"],
+        "expected_evidence": [
+            "Any document insertion, update, or deletion increments the index version, invalidating outdated cache entries automatically",
+        ],
+        "relevance_judgments": {"doc_026": 2, "doc_025": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_test_049",
+        "query": "How to prevent hallucinations in answers?",
+        "category": "ambiguous_underspecified",
+        "split": "test",
+        "reference_answer": "Hallucinations are mitigated by prompting the LLM with explicit source citation tags ([Doc-X]) and evaluating generation faithfulness using the RAG Triad framework.",
+        "source_doc_ids": ["doc_023", "doc_032"],
+        "expected_evidence": [
+            "format each retrieved passage with explicit source tags like [Doc-1] or [Ref-A]",
+            "Faithfulness measures whether generated claims are strictly supported by context",
+        ],
+        "relevance_judgments": {"doc_023": 2, "doc_032": 2, "doc_021": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+    {
+        "query_id": "q2_test_050",
+        "query": "Difference between hardware caching and software caching?",
+        "category": "ambiguous_underspecified",
+        "split": "test",
+        "reference_answer": "Hardware caching uses L1/L2/L3 silicon caches to transfer 64-byte lines between CPU and DRAM, while software caching in RAG uses in-memory LRU tables to store query responses (Tier 1) and query embedding vectors (Tier 2).",
+        "source_doc_ids": ["doc_025", "doc_036"],
+        "expected_evidence": [
+            "FastRAG uses a two-tier caching architecture: Level 1 Query Cache... Level 2 Embedding Cache",
+            "Modern multi-core processors implement multi-level hardware caches... fixed 64-byte cache lines",
+        ],
+        "relevance_judgments": {"doc_025": 2, "doc_036": 2, "doc_026": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "pending_review",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_ambiguity_design",
+        },
+    },
+
+    # =======================================================================
+    # 6. CITATION GROUNDING (Dev: 10, Test: 10)
+    # =======================================================================
+    # Queries explicitly asking for citation tags to specific claims.
+    # --- Dev ---
+    {
+        "query_id": "q2_dev_051",
+        "query": "According to FastRAG documentation, what separator hierarchy is used by recursive character chunking? Cite the source document.",
+        "category": "citation_grounding",
+        "split": "dev",
+        "reference_answer": "Recursive character chunking splits documents using a hierarchy of separators: double newlines, single newlines, punctuation, and spaces [doc_001].",
+        "source_doc_ids": ["doc_001"],
+        "expected_evidence": ["splits documents using a hierarchy of separators such as double newlines, single newlines, punctuation, and spaces"],
+        "relevance_judgments": {"doc_001": 2, "doc_002": 1, "doc_004": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_052",
+        "query": "According to the corpus, what formula defines Reciprocal Rank Fusion and what is the standard smoothing constant? Cite the source.",
+        "category": "citation_grounding",
+        "split": "dev",
+        "reference_answer": "Reciprocal Rank Fusion calculates score as sum(1 / (k + rank_m(d))) across retrieval systems, traditionally using smoothing constant k=60 [doc_014].",
+        "source_doc_ids": ["doc_014"],
+        "expected_evidence": ["RRF score is computed as sum(1 / (k + rank_m(d))) across all retrieval systems m, where k is a smoothing constant (traditionally k=60)"],
+        "relevance_judgments": {"doc_014": 2, "doc_015": 1, "doc_016": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_053",
+        "query": "Explain the role of parameters M and efConstruction in HNSW indexing with direct citations to the source document.",
+        "category": "citation_grounding",
+        "split": "dev",
+        "reference_answer": "In HNSW graphs, M defines the number of bi-directional links per node while efConstruction defines the dynamic candidate list size during graph building [doc_007].",
+        "source_doc_ids": ["doc_007"],
+        "expected_evidence": ["Key hyperparameters include M (number of bi-directional links per node) and efConstruction (size of dynamic candidate list during graph building)"],
+        "relevance_judgments": {"doc_007": 2, "doc_008": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_054",
+        "query": "What are the default values and meanings of parameters k1 and b in the BM25 formula? Cite the reference.",
+        "category": "citation_grounding",
+        "split": "dev",
+        "reference_answer": "In BM25, parameter k1 (typically 1.2 to 2.0) controls term frequency saturation, while parameter b (typically 0.75) penalizes document length [doc_009].",
+        "source_doc_ids": ["doc_009"],
+        "expected_evidence": ["term frequency saturation parameter k1 (typically 1.2 to 2.0)", "parameter b (typically 0.75) penalizes long documents"],
+        "relevance_judgments": {"doc_009": 2, "doc_012": 1, "doc_010": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_055",
+        "query": "How does asyncio.gather reduce concurrent retrieval latency compared to sequential execution? Cite the relevant document.",
+        "category": "citation_grounding",
+        "split": "dev",
+        "reference_answer": "Dispatching BM25 and dense retrieval concurrently using asyncio.gather reduces total latency from T_dense + T_lexical to max(T_dense, T_lexical) [doc_013].",
+        "source_doc_ids": ["doc_013"],
+        "expected_evidence": ["dispatching both retrievers concurrently via Python's asyncio.gather, total wall-clock retrieval time is reduced to max(T_dense, T_lexical)"],
+        "relevance_judgments": {"doc_013": 2, "doc_028": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_056",
+        "query": "What is the computational complexity of CrossEncoder reranking and why does it differ from bi-encoders? Cite the source documents.",
+        "category": "citation_grounding",
+        "split": "dev",
+        "reference_answer": "CrossEncoders exhibit O(N * L^2) complexity because all query and document tokens attend to each other simultaneously [doc_017], unlike bi-encoders which process query and document independently into vectors [doc_005].",
+        "source_doc_ids": ["doc_005", "doc_017"],
+        "expected_evidence": [
+            "Bi-encoder architectures encode documents and queries independently using twin Transformer encoders",
+            "CrossEncoders have O(N * L^2) computational cost",
+        ],
+        "relevance_judgments": {"doc_017": 2, "doc_005": 2, "doc_018": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_057",
+        "query": "What ordering strategy mitigates the lost-in-the-middle effect in RAG context assembly? Cite the supporting document.",
+        "category": "citation_grounding",
+        "split": "dev",
+        "reference_answer": "Strategic context ordering places the highest-relevance passages at prompt boundaries (start and end) to counter the lost-in-the-middle effect [doc_022].",
+        "source_doc_ids": ["doc_022"],
+        "expected_evidence": ["Strategic context ordering places the highest-relevance passages at the prompt boundaries to maximize factual utilization"],
+        "relevance_judgments": {"doc_022": 2, "doc_021": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_058",
+        "query": "How does FastRAG handle cache invalidation upon index mutation? Cite the source document.",
+        "category": "citation_grounding",
+        "split": "dev",
+        "reference_answer": "FastRAG tags cache entries with the active corpus version hash, automatically invalidating stale entries when documents are modified [doc_026].",
+        "source_doc_ids": ["doc_026"],
+        "expected_evidence": ["cache entries are tagged with the active corpus version hash. Any document insertion, update, or deletion increments the index version"],
+        "relevance_judgments": {"doc_026": 2, "doc_025": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_059",
+        "query": "Explain the difference between MRR and nDCG metrics using citations to their respective documentation.",
+        "category": "citation_grounding",
+        "split": "dev",
+        "reference_answer": "MRR measures 1/rank for the first relevant document in binary relevance QA [doc_029], whereas nDCG evaluates multi-document ranked lists using graded relevance with logarithmic rank discounting [doc_030].",
+        "source_doc_ids": ["doc_029", "doc_030"],
+        "expected_evidence": [
+            "MRR measures how early the first relevant document appears in the retrieved ranking",
+            "nDCG evaluates ranked retrieval lists using graded relevance judgments",
+        ],
+        "relevance_judgments": {"doc_029": 2, "doc_030": 2, "doc_031": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_dev_060",
+        "query": "Define the three metrics comprising the RAG Triad with direct citations to the source document.",
+        "category": "citation_grounding",
+        "split": "dev",
+        "reference_answer": "The RAG Triad comprises Context Relevance (passages are pertinent), Faithfulness (claims supported by context), and Answer Relevance (response answers query) [doc_032].",
+        "source_doc_ids": ["doc_032"],
+        "expected_evidence": [
+            "Context Relevance verifies that retrieved passages are pertinent",
+            "Faithfulness measures whether generated claims are strictly supported by context",
+            "Answer Relevance verifies that the response addresses the user question",
+        ],
+        "relevance_judgments": {"doc_032": 2, "doc_023": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+
+    # --- Test ---
+    {
+        "query_id": "q2_test_051",
+        "query": "How does semantic chunking determine split points dynamically? Cite the source document.",
+        "category": "citation_grounding",
+        "split": "test",
+        "reference_answer": "Semantic chunking determines split points by establishing a chunk boundary whenever the embedding cosine distance between consecutive sentences exceeds a threshold [doc_002].",
+        "source_doc_ids": ["doc_002"],
+        "expected_evidence": ["When cosine distance between sequential sentences exceeds a predefined threshold, a new chunk boundary is established"],
+        "relevance_judgments": {"doc_002": 2, "doc_001": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_test_052",
+        "query": "Why does raw character splitting cause tokenizer mismatches in BPE models? Cite the source document.",
+        "category": "citation_grounding",
+        "split": "test",
+        "reference_answer": "Splitting by character length causes mismatches with BPE tokenizers because code snippets and technical tokens produce significantly more tokens per character [doc_003].",
+        "source_doc_ids": ["doc_003"],
+        "expected_evidence": ["Splitting text by raw character length frequently leads to token count mismatches with LLM tokenizers like Byte-Pair Encoding (BPE)"],
+        "relevance_judgments": {"doc_003": 2, "doc_001": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_test_053",
+        "query": "Explain how sliding window overlap prevents query-matching phrases from being cut. Cite the source document.",
+        "category": "citation_grounding",
+        "split": "test",
+        "reference_answer": "Sliding window overlap (32 to 64 tokens) ensures that phrases straddling chunk boundaries remain intact in at least one retrieved passage [doc_004].",
+        "source_doc_ids": ["doc_004"],
+        "expected_evidence": ["overlap parameter (typically 32 to 64 tokens) ensures that query-matching phrases straddling a chunk boundary appear intact in at least one retrieved passage"],
+        "relevance_judgments": {"doc_004": 2, "doc_001": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_test_054",
+        "query": "How does unit Euclidean vector normalization simplify cosine similarity? Cite the source document.",
+        "category": "citation_grounding",
+        "split": "test",
+        "reference_answer": "Pre-normalizing embeddings to unit Euclidean length (L2 norm = 1.0) simplifies cosine similarity to a fast dot product [doc_006].",
+        "source_doc_ids": ["doc_006"],
+        "expected_evidence": ["pre-normalizing all document embeddings to unit Euclidean length (L2 norm = 1.0) during offline ingestion, cosine similarity simplifies computationally to a fast vector dot product"],
+        "relevance_judgments": {"doc_006": 2, "doc_005": 1, "doc_034": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_test_055",
+        "query": "Explain how IVF-PQ partitions vector space into Voronoi cells and product quantization. Cite the source document.",
+        "category": "citation_grounding",
+        "split": "test",
+        "reference_answer": "IVF-PQ partitions vector space into Voronoi cells using k-means and compresses vectors into compact byte codes via product quantization [doc_008].",
+        "source_doc_ids": ["doc_008"],
+        "expected_evidence": ["partitions vector space into Voronoi cells via k-means clustering and compresses high-dimensional vectors into compact byte codes using product quantization"],
+        "relevance_judgments": {"doc_008": 2, "doc_007": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_test_056",
+        "query": "What are the recommended BM25 parameter adjustments for technical documentation? Cite the source document.",
+        "category": "citation_grounding",
+        "split": "test",
+        "reference_answer": "For technical documentation, setting b=0.5 dampens length penalties and lowering k1 toward 1.2 curtails repetitive keyword influence [doc_012].",
+        "source_doc_ids": ["doc_012"],
+        "expected_evidence": ["Setting b=0.5 dampens excessive length penalties", "Lowering k1 toward 1.2 curbs the influence of repeated keywords"],
+        "relevance_judgments": {"doc_012": 2, "doc_009": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_test_057",
+        "query": "How does a two-stage retrieval funnel balance candidate recall with reranking precision? Cite the source document.",
+        "category": "citation_grounding",
+        "split": "test",
+        "reference_answer": "Two-stage retrieval first fetches 50-100 candidates with fast hybrid search for recall, then reranks the top 10-20 with a CrossEncoder for precision [doc_018].",
+        "source_doc_ids": ["doc_018"],
+        "expected_evidence": ["fast hybrid retrieval (Dense + BM25) fetches 50 to 100 candidate documents in tens of milliseconds to maximize candidate recall. Second, a lightweight CrossEncoder reranks only the top 10 to 20 candidates"],
+        "relevance_judgments": {"doc_018": 2, "doc_017": 1, "doc_031": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_test_058",
+        "query": "What are the two caching tiers in FastRAG's caching architecture? Cite the source document.",
+        "category": "citation_grounding",
+        "split": "test",
+        "reference_answer": "FastRAG implements a Level 1 Query Cache for completed end-to-end responses and a Level 2 Embedding Cache for query vectors [doc_025].",
+        "source_doc_ids": ["doc_025"],
+        "expected_evidence": ["Level 1 Query Cache stores completed end-to-end responses", "Level 2 Embedding Cache stores query embedding vectors in-memory"],
+        "relevance_judgments": {"doc_025": 2, "doc_026": 1, "doc_036": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_test_059",
+        "query": "How does Server-Sent Events streaming reduce Time to First Token? Cite the source document.",
+        "category": "citation_grounding",
+        "split": "test",
+        "reference_answer": "Server-Sent Events (SSE) streaming delivers initial tokens immediately as they are generated, drastically reducing perceived TTFT [doc_027].",
+        "source_doc_ids": ["doc_027"],
+        "expected_evidence": ["Streaming LLM output using Server-Sent Events (SSE) or HTTP chunked transfer dramatically reduces perceived latency, providing interactive feedback"],
+        "relevance_judgments": {"doc_027": 2, "doc_028": 1, "doc_035": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+    {
+        "query_id": "q2_test_060",
+        "query": "Why is Recall@K critical at stage one of a two-stage retrieval architecture? Cite the source document.",
+        "category": "citation_grounding",
+        "split": "test",
+        "reference_answer": "High Recall@K at stage one is critical because downstream rerankers cannot score or retrieve relevant passages that failed to pass the initial funnel [doc_031].",
+        "source_doc_ids": ["doc_031"],
+        "expected_evidence": ["high Recall@K at stage one (e.g., k=50 or k=100) is critical because downstream rerankers cannot score relevant passages that failed to pass the initial retrieval filter"],
+        "relevance_judgments": {"doc_031": 2, "doc_018": 1, "doc_029": 1, "doc_033": 0},
+        "annotation_provenance": {
+            "status": "human_reviewed",
+            "author": "FastRAG Research Team",
+            "review_date": "2026-10-16",
+            "method": "manual_citation_design",
+        },
+    },
+]
+
+
+def generate_v2_dataset() -> dict[str, Any]:
+    """Generate datasets/v2/ directory with all required files and manifest."""
+    V2_DATASETS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # 1. Copy canonical corpus to datasets/v2/corpus.jsonl
+    v2_corpus_file = V2_DATASETS_DIR / "corpus.jsonl"
+    corpus_text = CANONICAL_CORPUS.read_text(encoding="utf-8")
+    v2_corpus_file.write_text(corpus_text, encoding="utf-8")
+    doc_count = sum(1 for line in corpus_text.splitlines() if line.strip())
+
+    # 2. Separate queries by split
+    dev_queries = [q for q in QUERIES_DATA if q["split"] == "dev"]
+    test_queries = [q for q in QUERIES_DATA if q["split"] == "test"]
+
+    # 3. Write queries.jsonl (combined), queries_dev.jsonl, and queries_test.jsonl
+    v2_queries_file = V2_DATASETS_DIR / "queries.jsonl"
+    v2_queries_dev_file = V2_DATASETS_DIR / "queries_dev.jsonl"
+    v2_queries_test_file = V2_DATASETS_DIR / "queries_test.jsonl"
+
+    with open(v2_queries_file, "w", encoding="utf-8") as f:
+        for q in QUERIES_DATA:
+            f.write(json.dumps(q, ensure_ascii=False) + "\n")
+
+    with open(v2_queries_dev_file, "w", encoding="utf-8") as f:
+        for q in dev_queries:
+            f.write(json.dumps(q, ensure_ascii=False) + "\n")
+
+    with open(v2_queries_test_file, "w", encoding="utf-8") as f:
+        for q in test_queries:
+            f.write(json.dumps(q, ensure_ascii=False) + "\n")
+
+    # 4. Write qrels.tsv (combined), qrels_dev.tsv, and qrels_test.tsv
+    v2_qrels_file = V2_DATASETS_DIR / "qrels.tsv"
+    v2_qrels_dev_file = V2_DATASETS_DIR / "qrels_dev.tsv"
+    v2_qrels_test_file = V2_DATASETS_DIR / "qrels_test.tsv"
+
+    total_qrels_count = 0
+    dev_qrels_count = 0
+    test_qrels_count = 0
+
+    with open(v2_qrels_file, "w", encoding="utf-8") as f_all, \
+         open(v2_qrels_dev_file, "w", encoding="utf-8") as f_dev, \
+         open(v2_qrels_test_file, "w", encoding="utf-8") as f_test:
+        for q in QUERIES_DATA:
+            q_id = q["query_id"]
+            split = q["split"]
+            for doc_id, rel in q["relevance_judgments"].items():
+                line = f"{q_id}\t0\t{doc_id}\t{rel}\n"
+                f_all.write(line)
+                total_qrels_count += 1
+                if split == "dev":
+                    f_dev.write(line)
+                    dev_qrels_count += 1
+                elif split == "test":
+                    f_test.write(line)
+                    test_qrels_count += 1
+
+    # 5. File stats and checksums
+    file_metadata = {}
+    tracked_files = [
+        ("corpus.jsonl", v2_corpus_file),
+        ("queries.jsonl", v2_queries_file),
+        ("queries_dev.jsonl", v2_queries_dev_file),
+        ("queries_test.jsonl", v2_queries_test_file),
+        ("qrels.tsv", v2_qrels_file),
+        ("qrels_dev.tsv", v2_qrels_dev_file),
+        ("qrels_test.tsv", v2_qrels_test_file),
+    ]
+    for name, path in tracked_files:
+        file_metadata[name] = {
+            "relative_path": f"datasets/v2/{name}",
+            "sha256": sha256_file(path),
+            "size_bytes": path.stat().st_size,
+            "line_count": sum(1 for line in open(path, "r", encoding="utf-8") if line.strip()),
+        }
+
+    # 6. Category, Split, and Provenance Distributions
+    category_counts = {}
+    provenance_counts = {}
+    for q in QUERIES_DATA:
+        cat = q["category"]
+        category_counts[cat] = category_counts.get(cat, 0) + 1
+        status = q["annotation_provenance"]["status"]
+        provenance_counts[status] = provenance_counts.get(status, 0) + 1
+
+    manifest = {
+        "dataset_name": "FastRAG Research Evaluation Dataset v2",
+        "version": "2.0.0",
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "description": (
+            "Research-grade evaluation dataset for FastRAG v2 covering factual, multi-hop, "
+            "technical identifier, unanswerable/negative, ambiguous, and citation-grounded evaluation."
+        ),
+        "counts": {
+            "documents": doc_count,
+            "queries_total": len(QUERIES_DATA),
+            "queries_dev": len(dev_queries),
+            "queries_test": len(test_queries),
+            "qrels_total": total_qrels_count,
+            "qrels_dev": dev_qrels_count,
+            "qrels_test": test_qrels_count,
+        },
+        "distributions": {
+            "by_category": category_counts,
+            "by_split": {
+                "dev": len(dev_queries),
+                "test": len(test_queries),
+            },
+            "by_provenance_status": provenance_counts,
+        },
+        "relevance_scale": {
+            "0": "not relevant (explicit negative / distractor / unanswerable)",
+            "1": "partially relevant (background context / related topic)",
+            "2": "highly relevant (directly contains required answer / evidence)",
+        },
+        "files": file_metadata,
+        "generation_notes": (
+            "Generated deterministically by scripts/generate_dataset_v2.py. "
+            "Do not manually edit checksums or counts."
+        ),
+    }
+
+    manifest_file = V2_DATASETS_DIR / "dataset_manifest.json"
+    with open(manifest_file, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
+    return manifest
+
+
+if __name__ == "__main__":
+    manifest = generate_v2_dataset()
+    print("FastRAG Dataset v2 generated successfully:")
+    print(f"  - Documents:      {manifest['counts']['documents']}")
+    print(f"  - Total Queries:  {manifest['counts']['queries_total']} (Dev: {manifest['counts']['queries_dev']}, Test: {manifest['counts']['queries_test']})")
+    print(f"  - Total Qrels:    {manifest['counts']['qrels_total']} (Dev: {manifest['counts']['qrels_dev']}, Test: {manifest['counts']['qrels_test']})")
+    print("  - Categories:")
+    for cat, cnt in manifest["distributions"]["by_category"].items():
+        print(f"      * {cat}: {cnt}")
+    print("  - Provenance:")
+    for status, cnt in manifest["distributions"]["by_provenance_status"].items():
+        print(f"      * {status}: {cnt}")
+    for fname, meta in manifest["files"].items():
+        print(f"  - {fname}: {meta['sha256'][:16]}... ({meta['line_count']} lines, {meta['size_bytes']} bytes)")

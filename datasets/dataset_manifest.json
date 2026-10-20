@@ -1,0 +1,37 @@
+{
+  "dataset_name": "FastRAG Technical Evaluation Dataset",
+  "version": "1.0.0",
+  "created_at_utc": "2026-10-13T16:32:06.784083+00:00",
+  "description": "Deterministic, self-contained technical evaluation dataset covering RAG architecture, chunking, dense/lexical retrieval, rank fusion, reranking, caching, and distractor concepts.",
+  "counts": {
+    "documents": 36,
+    "queries": 24,
+    "qrels": 88
+  },
+  "relevance_scale": {
+    "0": "not relevant (explicit negative / distractor)",
+    "1": "partially relevant (mentions related principles or contextual background)",
+    "2": "highly relevant (directly addresses the query topic)"
+  },
+  "files": {
+    "corpus.jsonl": {
+      "relative_path": "datasets/corpus.jsonl",
+      "sha256": "26dc2ef7eaa129c217008a9e5fddb311ff8c4241f9db6bcfb4a1c86c178c076d",
+      "size_bytes": 21337,
+      "line_count": 36
+    },
+    "queries.jsonl": {
+      "relative_path": "datasets/queries.jsonl",
+      "sha256": "0c3873bb4f92618ac8a75ea368c94f8879db7d859cacc92fd017da031a822129",
+      "size_bytes": 6045,
+      "line_count": 24
+    },
+    "qrels.tsv": {
+      "relative_path": "datasets/qrels.tsv",
+      "sha256": "466cf5aa1b3dfb8c50c1e6962ece4d3e6b35e89125b3ca85f0b23230da10f065",
+      "size_bytes": 1584,
+      "line_count": 88
+    }
+  },
+  "generation_notes": "Generated deterministically by scripts/generate_dataset.py. Do not manually edit checksums or counts."
+}

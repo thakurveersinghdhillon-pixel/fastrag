@@ -1,0 +1,1 @@
+"""FastRAG Evaluation Framework package."""
